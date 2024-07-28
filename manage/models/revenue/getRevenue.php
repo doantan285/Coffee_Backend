@@ -6,7 +6,7 @@ header('Access-Control-Allow-Headers: Content-Type');
 require_once(__DIR__ . '/../../../config/database.php');
 $db = DB::connect();
 
-$query = "SELECT customer_name, date_order, note, order_id, product_name, table_number, total_amount FROM orders WHERE is_paid = '1'";
+$query = "SELECT customer_name, date_order, note, order_id, product_name, table_number, total_amount, discount, account_id FROM orders WHERE is_paid = '1'";
 $result = $db->query($query);
 
 if ($result) {

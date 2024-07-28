@@ -6,20 +6,25 @@ header('Access-Control-Allow-Headers: Content-Type');
 require_once(__DIR__ . '/../../../config/database.php');
 $db = DB::connect();
 
-$query = "SELECT MONTH(date_order) AS month, YEAR(date_order) AS year, 
-                SUM(total_amount) AS total_amount 
-          FROM orders
-          GROUP BY YEAR(date_order), MONTH(date_order)
-          ORDER BY year, month;";
+$current_year = date("Y");
 
-$result = $db->query($query);
+$query = "SELECT MONTH(date_order) AS month, 
+                 SUM(total_amount) AS total_amount 
+          FROM orders 
+          WHERE is_paid = 1 AND YEAR(date_order) = ?
+          GROUP BY MONTH(date_order)
+          ORDER BY MONTH(date_order);";
+
+$stmt = $db->prepare($query);
+$stmt->bind_param("i", $current_year);
+$stmt->execute();
+$result = $stmt->get_result();
 
 if ($result) {
     $data = array();
     $current_month = 1;
     while ($row = $result->fetch_assoc()) {
         $month = (int)$row['month'];
-        $year = (int)$row['year'];
         $total_amount = (float)$row['total_amount'];
 
         // Fill in months with total_amount = 0
@@ -31,8 +36,6 @@ if ($result) {
         $data[] = $total_amount;
         $current_month++;
     }
-
-    // Fill in remaining months with total_amount = 0
     while ($current_month <= 12) {
         $data[] = 0;
         $current_month++;
@@ -45,5 +48,6 @@ if ($result) {
     error_log($db->error);
 }
 
+$stmt->close();
 $db->close();
 ?>

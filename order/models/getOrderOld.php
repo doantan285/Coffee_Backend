@@ -3,15 +3,13 @@ header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type');
 
+// Kết nối đến cơ sở dữ liệu
 require_once(__DIR__ . '/../../config/database.php');
 $db = DB::connect();
 
-// Lấy dữ liệu gửi lên từ frontend
-$data = json_decode(file_get_contents("php://input"), true);
-
-// Kiểm tra nếu dữ liệu được gửi lên không rỗng và tồn tại trường tableNumber
-if (!empty($data['table_number'])) {
-    $tableNumber = $db->real_escape_string($data['table_number']);
+// Kiểm tra nếu tham số table_number tồn tại trong query string
+if (isset($_GET['table_number']) && !empty($_GET['table_number'])) {
+    $tableNumber = $db->real_escape_string($_GET['table_number']);
 
     // Truy vấn SQL để lấy dữ liệu từ bảng orders
     $query = "SELECT * FROM orders WHERE table_number = '$tableNumber' AND is_paid <> 1";
@@ -32,8 +30,8 @@ if (!empty($data['table_number'])) {
 
     $result->free();
 } else {
-    // Trường tableNumber không tồn tại trong dữ liệu gửi lên
-    echo json_encode(array('error' => 'Missing tableNumber field'));
+    // Trường table_number không tồn tại trong query string
+    echo json_encode(array('error' => 'Missing table_number parameter'));
 }
 
 $db->close();

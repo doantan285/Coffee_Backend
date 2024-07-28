@@ -16,18 +16,31 @@ if ($_SERVER['REQUEST_METHOD'] == 'OPTIONS') {
 }
 
 // Kiểm tra tính hợp lệ của dữ liệu đầu vào
-if (!empty($data) && $dataOrder !== null && isset($dataOrder['product_name']) && isset($dataOrder['customer_name']) && isset($dataOrder['note']) && isset($dataOrder['table_number']) && isset($dataOrder['total_amount']) && isset($dataOrder['is_paid'])) {
+if (!empty($data) && $dataOrder !== null && isset($dataOrder['product_name']) && isset($dataOrder['customer_name']) && isset($dataOrder['note']) && isset($dataOrder['table_number']) && isset($dataOrder['total_amount']) && isset($dataOrder['is_paid']) && isset($dataOrder['account_id']) && isset($dataOrder['discount'])) {
 
-    // Kết nối đến cơ sở dữ liệu (chưa điều chỉnh theo loại cơ sở dữ liệu bạn đang sử dụng)
+    // Kết nối đến cơ sở dữ liệu
     require_once(__DIR__ . '/../../config/database.php');
     $db = DB::connect();
 
-    // Chuẩn bị truy vấn sử dụng tham số hóa
-    $insert_query = $db->prepare("INSERT INTO orders (product_name, customer_name, note, table_number, total_amount, is_paid, date_order) 
-                                  VALUES (?, ?, ?, ?, ?, ?, NOW())");
+    if ($db->connect_error) {
+        die("Kết nối thất bại: " . $db->connect_error);
+    }
 
-    // Bind parameters và thực thi truy vấn
-    $insert_query->bind_param("sssiid", $dataOrder['product_name'], $dataOrder['customer_name'], $dataOrder['note'], $dataOrder['table_number'], $dataOrder['total_amount'], $dataOrder['is_paid']);
+    // Chuẩn bị truy vấn sử dụng tham số hóa
+    $query = "INSERT INTO orders (product_name, customer_name, note, table_number, total_amount, is_paid, date_order, account_id, discount) 
+              VALUES (?, ?, ?, ?, ?, ?, NOW(), ?, ?)";
+
+    $insert_query = $db->prepare($query);
+
+    if (!$insert_query) {
+        die("Lỗi chuẩn bị truy vấn: " . $db->error);
+    }
+
+    $types = 'sssiissi';  // Chỉnh sửa chuỗi định nghĩa loại để khớp với số lượng tham số
+
+    // Bind parameters
+    $insert_query->bind_param($types, $dataOrder['product_name'], $dataOrder['customer_name'], $dataOrder['note'], $dataOrder['table_number'], $dataOrder['total_amount'], $dataOrder['is_paid'], $dataOrder['account_id'], $dataOrder['discount']);
+
     if ($insert_query->execute()) {
         // Xóa các bản ghi trước đó có cùng table_number và is_paid khác 1, chỉ giữ lại bản ghi mới nhất
         $delete_query = $db->prepare("DELETE FROM orders 
